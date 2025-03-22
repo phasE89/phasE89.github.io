@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work vs Free Time Tracker</title>
+  <style>
+    :root {
+      --bg-light: linear-gradient(to right, #e0f7fa, #fff3e0);
+      --bg-dark: #121212;
+      --text-light: #333;
+      --text-dark: #eee;
+      --work-color: #81c784;
+      --free-color: #e57373;
+      --stop-color: #90a4ae;
+      --reset-color: #ffd54f;
+      --card-bg-light: rgba(255, 255, 255, 0.9);
+      --card-bg-dark: rgba(30, 30, 30, 0.9);
+      --shadow-light: 0 8px 16px rgba(0, 0, 0, 0.1);
+      --shadow-dark: 0 8px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg-light);
+      text-align: center;
+      padding: 1rem;
+      color: var(--text-light);
+      transition: all 0.3s;
+      margin: 0;
+    }
+    body.dark {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    header {
+      position: sticky;
+      top: 0;
+      background: var(--bg-light);
+      padding: 1rem;
+      z-index: 100;
+      border-radius: 0 0 12px 12px;
+      box-shadow: var(--shadow-light);
+      backdrop-filter: blur(10px);
+    }
+    
+    body.dark header {
+      background: var(--bg-dark);
+      box-shadow: var(--shadow-dark);
+    }
+    
+    h1 {
+      margin-bottom: 1rem;
+      font-size: 2.5rem;
+    }
+    
+    .card {
+      background: var(--card-bg-light);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-light);
+    }
+    
+    body.dark .card {
+      background: var(--card-bg-dark);
+      box-shadow: var(--shadow-dark);
+    }
+    
+    .timers {
+      font-size: 2.2rem;
+      margin: 1.5rem 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+    }
+    
+    .timer-block {
+      position: relative;
+      transition: transform 0.3s;
+    }
+    
+    .timer-block.active {
+      transform: scale(1.05);
+    }
+    
+    .timer-block.work-active::after {
+      content: '';
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background-color: var(--work-color);
+      border-radius: 50%;
+      top: 0;
+      right: -20px;
+      animation: pulse 2s infinite;
+    }
+    
+    .timer-block.free-active::after {
+      content: '';
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background-color: var(--free-color);
+      border-radius: 50%;
+      top: 0;
+      right: -20px;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(129, 199, 132, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(129, 199, 132, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(129, 199, 132, 0);
+      }
+    }
+    
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+    
+    /* Adjust button widths to fit on one line */
+    @media (min-width: 768px) {
+      .buttons button {
+        padding: 0.8rem 1.5rem;
+        font-size: 1.1rem;
+      }
+    }
+    
+    button {
+      font-size: 1.2rem;
+      padding: 1rem 2rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      transition: background-color 0.3s, transform 0.2s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    button:hover {
+      transform: scale(1.05);
+    }
+    
+    button:active {
+      transform: scale(0.98);
+    }
+    
+    @media (max-width: 768px) {
+      button {
+        padding: 1rem 1rem;
+        font-size: 1.1rem;
+        flex-grow: 1;
+      }
+      
+      .buttons {
+        margin: 0 -0.25rem;
+        gap: 0.4rem;
+      }
+    }
+    
+    .work {
+      background-color: var(--work-color);
+      color: #fff;
+    }
+    
+    .free {
+      background-color: var(--free-color);
+      color: #fff;
+    }
+    
+    .stop {
+      background-color: var(--stop-color);
+      color: #fff;
+    }
+    
+    .reset {
+      background-color: var(--reset-color);
+      color: #333;
+    }
+    
+    .status {
+      font-size: 1.2rem;
+      margin-top: 1rem;
+      font-style: italic;
+    }
+    
+    .toggle-mode {
+      background: transparent;
+      color: inherit;
+      border: 2px solid currentColor;
+    }
+    
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+    
+    .chart-wrapper {
+      flex: 1;
+      min-width: 300px;
+    }
+    
+    canvas {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    
+    .stat-item {
+      padding: 1rem;
+      border-radius: 8px;
+      background-color: rgba(255, 255, 255, 0.2);
+      min-width: 200px;
+    }
+    
+    body.dark .stat-item {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .quote {
+      margin-top: 2rem;
+      font-style: italic;
+      font-size: 1.1rem;
+      opacity: 0.9;
+      padding: 1rem;
+    }
+    
+    .settings-button {
+      background-color: transparent;
+      border: 1px solid currentColor;
+      color: inherit;
+      margin-left: auto;
+    }
+    
+    .settings-panel {
+      height: 0;
+      overflow: hidden;
+      transition: height 0.3s;
+    }
+    
+    .settings-panel.open {
+      height: auto;
+      padding: 1.5rem 1rem;
+    }
+    
+    .settings-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      align-items: start;
+    }
+    
+    .settings-form label,
+    .settings-group-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.8rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    body.dark .settings-form label,
+    body.dark .settings-group-container,
+    body.dark .pomodoro-container {
+      background-color: rgba(80, 80, 80, 0.15);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    
+    .settings-form label:hover,
+    .pomodoro-container:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .settings-form input[type="checkbox"] {
+      margin-right: 0.5rem;
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+    
+    .settings-form input[type="number"] {
+      width: 80px;
+      padding: 0.4rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background-color: rgba(255, 255, 255, 0.9);
+      transition: all 0.2s ease;
+    }
+    
+    body.dark .settings-form input[type="number"] {
+      background-color: rgba(60, 60, 60, 0.8);
+      color: #eee;
+      border-color: #555;
+    }
+    
+    .settings-form input[type="number"]:focus {
+      outline: none;
+      border-color: #81c784;
+      box-shadow: 0 0 0 2px rgba(129, 199, 132, 0.3);
+    }
+    
+    .settings-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .pomodoro-container {
+      grid-column: span 2;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 1rem;
+      background-color: rgba(255, 150, 0, 0.08);
+      border-radius: 8px;
+      border: 1px dashed rgba(255, 150, 0, 0.3);
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    body.dark .pomodoro-container {
+      background-color: rgba(255, 150, 0, 0.1);
+      border-color: rgba(255, 150, 0, 0.2);
+    }
+    
+    .pomodoro-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+      font-weight: 500;
+      color: #ff9800;
+    }
+    
+    body.dark .pomodoro-title {
+      color: #ffb74d;
+    }
+    
+    .pomodoro-settings {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem;
+      padding-left: 1.8rem;
+      margin-top: 0.5rem;
+    }
+    
+    .pomodoro-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      background-color: rgba(255, 255, 255, 0.15);
+      padding: 0.6rem 0.8rem;
+      border-radius: 5px;
+      min-width: 120px;
+    }
+    
+    body.dark .pomodoro-item {
+      background-color: rgba(80, 80, 80, 0.3);
+    }
+    
+    .setting-label {
+      font-weight: 500;
+      margin-bottom: 0.2rem;
+    }
+    
+    .info-icon {
+      cursor: help;
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      background-color: rgba(255, 150, 0, 0.8);
+      color: white;
+      border-radius: 50%;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+      position: relative;
+      margin-left: 5px;
+    }
+    
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 250px;
+      background-color: rgba(90, 90, 110, 0.85);
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      top: -5px;
+      left: 125%;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-weight: normal;
+      font-size: 0.85rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .tooltip .tooltip-text::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: 100%;
+      margin-top: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: transparent rgba(0, 0, 0, 0.8) transparent transparent;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    .setting-help {
+      font-size: 0.8em;
+      opacity: 0.7;
+      margin-left: 0.3rem;
+      font-style: italic;
+    }
+    
+    .target-line {
+      position: absolute;
+      width: 100%;
+      border-top: 2px dashed #ff9800;
+      z-index: 10;
+    }
+    
+    /* Language switch styles */
+    .lang-switch {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 0.9rem;
+      opacity: 0.7;
+      transition: opacity 0.3s;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 4px;
+      color: inherit;
+    }
+    
+    .lang-switch:hover {
+      opacity: 1;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    @media (max-width: 600px) {
+      .lang-switch {
+        top: 0.5rem;
+        right: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="lang-switch" onclick="toggleLanguage()">🌐 CZ/EN</button>
+  
+  <div class="container">
+    <header>
+      <h1 id="title">⏳ Work vs Free Time Tracker</h1>
+      <div class="timers">
+        <div id="workTimer" class="timer-block">
+          🟢 <span id="workTime">0:00:00</span>
+        </div>
+        <div id="freeTimer" class="timer-block">
+          🔴 <span id="freeTime">0:00:00</span>
+        </div>
+      </div>
+    </header>
+    
+    <div class="card">
+      <div class="buttons">
+        <button id="workBtn" class="work" onclick="startTracking('work')">Start Work</button>
+        <button id="freeBtn" class="free" onclick="startTracking('free')">Start Free Time</button>
+        <button id="stopBtn" class="stop" onclick="stopTracking()">⏹️ Stop</button>
+        <button id="resetBtn" class="reset" onclick="resetTimers()">🔄 Reset</button>
+        <button id="modeBtn" class="toggle-mode" onclick="toggleDarkMode()">🌓 Mode</button>
+        <button id="settingsBtn" class="settings-button" onclick="toggleSettings()">⚙️</button>
+      </div>
+      <div class="status" id="status">No timer running.</div>
+      
+      <div id="settingsPanel" class="settings-panel">
+        <div class="settings-form">
+          <label>
+            <span class="setting-label" id="soundLabel">Sound Notifications</span>
+            <div class="settings-group">
+              <input type="checkbox" id="enableSounds" checked>
+            </div>
+          </label>
+          <label>
+            <span class="setting-label" id="targetLabel">Daily Work Target (hours)</span>
+            <input type="number" id="workTarget" min="1" step="1" value="4">
+          </label>
+          <div class="pomodoro-container">
+            <div class="pomodoro-title">
+              <input type="checkbox" id="enablePomodoro">
+              <span id="pomodoroLabel">Pomodoro Mode</span>
+              <div class="tooltip">
+                <div class="info-icon">i</div>
+                <span class="tooltip-text" id="pomodoroHelp">A technique where you work in focused time blocks (e.g. 25 min) followed by short breaks to maximize productivity.</span>
+              </div>
+            </div>
+            <div class="pomodoro-settings">
+              <div class="pomodoro-item">
+                <span id="workMinLabel">Work minutes</span>
+                <input type="number" id="pomodoroWork" min="1" max="60" value="25">
+              </div>
+              <div class="pomodoro-item">
+                <span id="breakMinLabel">Break minutes</span>
+                <input type="number" id="pomodoroBreak" min="1" max="30" value="5">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2 id="progressTitle">Today's Progress</h2>
+      <div class="stats">
+        <div class="stat-item">
+          <h3 id="ratioTitle">Work Ratio</h3>
+          <div id="workRatio">0%</div>
+        </div>
+        <div class="stat-item">
+          <h3 id="targetTitle">Daily Target</h3>
+          <div id="targetProgress">0/4 hours</div>
+        </div>
+        <div class="stat-item">
+          <h3 id="efficiencyTitle">Efficiency</h3>
+          <div id="efficiency">0%</div>
+        </div>
+      </div>
+      
+      <div class="charts-container">
+        <div class="chart-wrapper">
+          <canvas id="timeChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="historyChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="quote" id="quote">"The best way to get something done is to begin."</div>
+    </div>
+  </div>
+
+  <audio id="beep">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+  </audio>
+  
+  <audio id="achievement">
+    <source src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" type="audio/ogg">
+  </audio>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+  <script>
+    let workSeconds = 0;
+    let freeSeconds = 0;
+    let interval;
+    let current = null;
+    let dailyData = {};
+    let pomodoroInterval = null;
+    let pomodoroSecondsLeft = 0;
+    let language = 'en'; // Default language
+    
+    const TODAY = new Date().toISOString().split('T')[0];
+
+    const beep = document.getElementById('beep');
+    const achievement = document.getElementById('achievement');
+    const quoteEl = document.getElementById('quote');
+    const workTimerEl = document.getElementById('workTimer');
+    const freeTimerEl = document.getElementById('freeTimer');
+    
+    // Tim Urban / Wait But Why inspired quotes
+    const quotes = {
+      en: [
+        "There are only two things left between you and achievement: discipline and 'future you' not being a jerk.",
+        "If you're spending 80% of your time in the Dark Playground, we have a problem.",
+        "Future You will enjoy the rewards of your work today, but only if Present You stops scrolling.",
+        "The Panic Monster isn't your friend, but maybe he's the accountability partner you deserve.",
+        "Your life is just a series of Present Moments™. How will you spend this one?",
+        "Successful people aren't superhumans. They're just better at making friends with discomfort.",
+        "Between Instant Gratification Monkey and Rational Decision-Maker, who's driving your brain today?",
+        "The distance between 'I should' and 'I did' is your entire life story.",
+        "The most effective productivity hack: making your Future Self not hate your Past Self.",
+        "The hardest thing about hard work isn't the work—it's convincing yourself to do it when the monkey's in charge.",
+        "If you wait until you feel like doing something, you'll spend most of your life waiting.",
+        "The Instant Gratification Monkey believes all deadlines are fake until the night before.",
+        "Every minute spent wallowing in the Dark Playground is a minute you'll never get back.",
+        "You've been blessed with consciousness in a universe of matter. Maybe don't waste it watching cat videos?",
+        "Being productive isn't about doing more things—it's about doing more of the right things."
+      ],
+      cz: [
+        "Mezi tebou a úspěchem stojí jen dvě věci: disciplína a to, že 'budoucí ty' nebude blbec.",
+        "Odkládání snadné věci ztěžuje a těžké věci znemožňuje.",
+        "Budoucí Ty si užije odměny za tvou dnešní práci, ale jen pokud Současný Ty přestane scrollovat.",
+        "Otálení je zlozvyk odkládat na pozítří to, co mělo být provedeno předevčírem.",
+        "Tvůj život je jen série Přítomných okamžiků™. Jak využiješ tenhle?",
+        "Úspěšní lidé nejsou supermani. Jen se lépe kamarádí s nepohodlím.",
+        "Nic není tak unavující jako věčně nedokončený úkol.",
+        "Vzdálenost mezi 'měl bych' a 'udělal jsem' je celý příběh tvého života.",
+        "Nejefektivnější produktivní trik: zařídit, aby tvé Budoucí já nechtělo nenávidět tvé Minulé já.",
+        "Doba našeho života je omezená a konečná. Vzhledem k této skutečnosti je právě čas tím nejhodnotnějším, co v životě máme.",
+        "Pokud čekáš, až budeš mít chuť něco udělat, strávíš většinu života čekáním.",
+        "Úspěšný muž je ten, který dokáže vydělat více peněz, než kolik dovede utratit jeho manželka.",
+        "Miluji termíny. Miluji zvuk, který vydávají, když proletí kolem.",
+        "Byl jsi požehnán vědomím ve vesmíru hmoty. Možná to neplýtvej sledováním videí s kočkami?",
+        "Být produktivní není o dělání více věcí—je to o dělání více správných věcí.",
+		"Pokud věříš sám sobě... a věříš ve své sny... a sleduješ svou hvězdu... přesto tě porazí lidé, kteří strávili čas tvrdou prací a učením a nebyli tak líní."  
+      ]
+    };
+    
+    // UI text translations
+    const uiText = {
+      en: {
+        title: "⏳ Procrastination Slayer",
+        workBtn: "Start Work",
+        freeBtn: "Start Free",
+        stopBtn: "⏹️ Stop",
+        resetBtn: "🔄 Reset",
+        modeBtn: "🌓 Mode",
+        settingsBtn: "⚙️",
+        status: "No timer running.",
+        soundLabel: "Sound Notifications",
+        targetLabel: "Daily Work Target (hours)",
+        pomodoroLabel: "Pomodoro Mode",
+        pomodoroTooltip: "A technique where you work in focused time blocks (e.g. 25 min) followed by short breaks to maximize productivity.",
+        workMinLabel: "Work minutes",
+        breakMinLabel: "Break minutes",
+        progressTitle: "Today's Progress",
+        ratioTitle: "Work Ratio",
+        targetTitle: "Daily Target",
+        efficiencyTitle: "Efficiency",
+        trackingWork: "Tracking Work...",
+        trackingFree: "Tracking Free Time...",
+        paused: "Paused",
+        noTimer: "No timer running.",
+        timersReset: "Timers reset.",
+        pomodoroComplete: "Pomodoro session complete! Take a",
+        minuteBreak: "minute break?",
+        distributionTitle: "Today's Distribution",
+        historyTitle: "Last 7 Days",
+        hours: "Hours",
+        confirmReset: "Are you sure you want to reset today's timers?",
+        pomodoroStatus: "Tracking Work... Pomodoro:",
+        remaining: "remaining",
+        pomodoroNotification: "Pomodoro Complete",
+        breakTime: "Time for a break!",
+        milestoneNotification: "Productivity Milestone",
+        congratsMessage: "Congratulations! You've worked for",
+        hoursToday: "hours today."
+      },
+      cz: {
+        title: "⏳ Hlídač prokrastinace",
+        workBtn: "Začít práci",
+        freeBtn: "Začít pauzu",
+        stopBtn: "⏹️ Stop",
+        resetBtn: "🔄 Reset",
+        modeBtn: "🌓 Režim",
+        settingsBtn: "⚙️",
+        status: "Žádný časovač neběží.",
+        soundLabel: "Zvuková upozornění",
+        targetLabel: "Denní cíl práce (hodiny)",
+        pomodoroLabel: "Pomodoro režim",
+        pomodoroTooltip: "Technika, při které pracujete v soustředěných časových blocích (např. 25 min) následovaných krátkými přestávkami pro zvýšení produktivity.",
+        workMinLabel: "Minuty práce",
+        breakMinLabel: "Minuty přestávky",
+        progressTitle: "Dnešní pokrok",
+        ratioTitle: "Poměr práce",
+        targetTitle: "Denní cíl",
+        efficiencyTitle: "Efektivita",
+        trackingWork: "Sledování práce...",
+        trackingFree: "Sledování volného času...",
+        paused: "Pozastaveno",
+        noTimer: "Žádný časovač neběží.",
+        timersReset: "Časovače resetovány.",
+        pomodoroComplete: "Pomodoro dokončeno! Dát si",
+        minuteBreak: "minutovou přestávku?",
+        distributionTitle: "Dnešní rozložení",
+        historyTitle: "Posledních 7 dní",
+        hours: "hodin",
+        confirmReset: "Opravdu chcete resetovat dnešní časovače?",
+        pomodoroStatus: "Sledování práce... Pomodoro:",
+        remaining: "zbývá",
+        pomodoroNotification: "Pomodoro dokončeno",
+        breakTime: "Čas na přestávku!",
+        milestoneNotification: "Produktivní milník",
+        congratsMessage: "Gratulujeme! Dnes jste pracovali",
+        hoursToday: "hodin."
+      }
+    };
+
+    window.onload = function () {
+      // Auto-detect browser language
+      const browserLang = navigator.language || navigator.userLanguage;
+      
+      // Set default language based on browser settings
+      if (localStorage.getItem('language')) {
+        // Use saved preference if available
+        language = localStorage.getItem('language');
+      } else {
+        // Otherwise detect based on browser language
+        if (browserLang.startsWith('cs') || browserLang.startsWith('cz')) {
+          language = 'cz';
+        } else {
+          language = 'en';
+        }
+        localStorage.setItem('language', language);
+      }
+      
+      loadData();
+      updateDisplay();
+      updateStats();
+      updateUILanguage();
+      drawCharts();
+      showRandomQuote();
+      
+      // Set up notification permission
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+    };
+    
+    function loadData() {
+      // Load today's data
+      if (localStorage.getItem('workSeconds')) {
+        workSeconds = parseInt(localStorage.getItem('workSeconds'));
+      }
+      if (localStorage.getItem('freeSeconds')) {
+        freeSeconds = parseInt(localStorage.getItem('freeSeconds'));
+      }
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark');
+      }
+      
+      // Load history data
+      if (localStorage.getItem('dailyData')) {
+        dailyData = JSON.parse(localStorage.getItem('dailyData'));
+      }
+      
+      // Initialize today's data if not exists
+      if (!dailyData[TODAY]) {
+        dailyData[TODAY] = {
+          work: workSeconds,
+          free: freeSeconds
+        };
+      }
+    }
+    
+    function toggleLanguage() {
+      language = language === 'en' ? 'cz' : 'en';
+      localStorage.setItem('language', language);
+      updateUILanguage();
+      showRandomQuote();
+      drawCharts(); // Redraw charts with new language
+    }
+    
+    function updateUILanguage() {
+      const text = uiText[language];
+      
+      // Update all UI elements with translated text
+      document.getElementById('title').textContent = text.title;
+      document.getElementById('workBtn').textContent = text.workBtn;
+      document.getElementById('freeBtn').textContent = text.freeBtn;
+      document.getElementById('stopBtn').textContent = text.stopBtn;
+      document.getElementById('resetBtn').textContent = text.resetBtn;
+      document.getElementById('modeBtn').textContent = text.modeBtn;
+      document.getElementById('settingsBtn').textContent = text.settingsBtn;
+      document.getElementById('status').textContent = current ? 
+        `${text.paused} (${current === 'work' ? text.workBtn : text.freeBtn})` : 
+        text.noTimer;
+      
+      // Settings panel
+      document.getElementById('soundLabel').textContent = text.soundLabel;
+      document.getElementById('targetLabel').textContent = text.targetLabel;
+      document.getElementById('pomodoroLabel').textContent = text.pomodoroLabel;
+      document.getElementById('pomodoroHelp').textContent = text.pomodoroTooltip;
+      document.getElementById('workMinLabel').textContent = text.workMinLabel;
+      document.getElementById('breakMinLabel').textContent = text.breakMinLabel;
+      
+      // Stats area
+      document.getElementById('progressTitle').textContent = text.progressTitle;
+      document.getElementById('ratioTitle').textContent = text.ratioTitle;
+      document.getElementById('targetTitle').textContent = text.targetTitle;
+      document.getElementById('efficiencyTitle').textContent = text.efficiencyTitle;
+      
+      // Update progress text with correct language
+      updateStats();
+    }
+
+    function startTracking(mode) {
+      stopTracking();
+      current = mode;
+      
+      if (document.getElementById('enableSounds').checked) {
+        beep.play();
+      }
+      
+      const text = uiText[language];
+      document.getElementById('status').textContent = mode === 'work' ? text.trackingWork : text.trackingFree;
+      
+      // Visual feedback
+      if (mode === 'work') {
+        workTimerEl.classList.add('active', 'work-active');
+        freeTimerEl.classList.remove('active', 'free-active');
+      } else {
+        freeTimerEl.classList.add('active', 'free-active');
+        workTimerEl.classList.remove('active', 'work-active');
+      }
+      
+      // Check if pomodoro is enabled
+      if (document.getElementById('enablePomodoro').checked && mode === 'work') {
+        startPomodoro();
+      }
+      
+      interval = setInterval(() => {
+        if (mode === 'work') {
+          workSeconds++;
+          dailyData[TODAY].work = workSeconds;
+        } else {
+          freeSeconds++;
+          dailyData[TODAY].free = freeSeconds;
+        }
+        
+        updateDisplay();
+        updateStats();
+        saveData();
+        
+        // Check for hour milestone
+        if (mode === 'work' && workSeconds % 3600 === 0 && workSeconds > 0) {
+          celebrateHourMilestone();
+        }
+      }, 1000);
+    }
+    
+    function startPomodoro() {
+      const workMinutes = parseInt(document.getElementById('pomodoroWork').value);
+      pomodoroSecondsLeft = workMinutes * 60;
+      
+      updatePomodoroStatus();
+      
+      pomodoroInterval = setInterval(() => {
+        pomodoroSecondsLeft--;
+        updatePomodoroStatus();
+        
+        if (pomodoroSecondsLeft <= 0) {
+          clearInterval(pomodoroInterval);
+          notifyPomodoroComplete();
+        }
+      }, 1000);
+    }
+    
+    function updatePomodoroStatus() {
+      const text = uiText[language];
+      const minutes = Math.floor(pomodoroSecondsLeft / 60);
+      const seconds = pomodoroSecondsLeft % 60;
+      document.getElementById('status').textContent = 
+        `${text.pomodoroStatus} ${minutes}:${String(seconds).padStart(2, '0')} ${text.remaining}`;
+    }
+    
+    function notifyPomodoroComplete() {
+      const text = uiText[language];
+      
+      if (document.getElementById('enableSounds').checked) {
+        achievement.play();
+      }
+      
+      if (Notification.permission === 'granted') {
+        new Notification(text.pomodoroNotification, {
+          body: text.breakTime,
+          icon: 'https://cdn-icons-png.flaticon.com/512/3981/3981760.png'
+        });
+      }
+      
+      const breakMinutes = parseInt(document.getElementById('pomodoroBreak').value);
+      
+      if (confirm(`${text.pomodoroComplete} ${breakMinutes} ${text.minuteBreak}`)) {
+        stopTracking();
+        startTracking('free');
+        
+        // Auto switch back after break
+        setTimeout(() => {
+          if (current === 'free') {
+            stopTracking();
+            startTracking('work');
+          }
+        }, breakMinutes * 60 * 1000);
+      }
+    }
+    
+    function celebrateHourMilestone() {
+      const text = uiText[language];
+      
+      if (document.getElementById('enableSounds').checked) {
+        achievement.play();
+      }
+      
+      const hours = workSeconds / 3600;
+      
+      if (Notification.permission === 'granted') {
+        new Notification(text.milestoneNotification, {
+          body: `${text.congratsMessage} ${hours} ${text.hoursToday}`,
+          icon: 'https://cdn-icons-png.flaticon.com/512/3981/3981760.png'
+        });
+      }
+      
+      showRandomQuote();
+    }
+
+    function stopTracking() {
+      clearInterval(interval);
+      clearInterval(pomodoroInterval);
+      
+      workTimerEl.classList.remove('active', 'work-active');
+      freeTimerEl.classList.remove('active', 'free-active');
+      
+      const text = uiText[language];
+      if (current) {
+        document.getElementById('status').textContent = `${text.paused} (${current === 'work' ? text.workBtn : text.freeBtn})`;
+      } else {
+        document.getElementById('status').textContent = text.noTimer;
+      }
+      current = null;
+    }
+
+    function resetTimers() {
+      const text = uiText[language];
+      const confirmReset = confirm(text.confirmReset);
+      if (confirmReset) {
+        stopTracking();
+        workSeconds = 0;
+        freeSeconds = 0;
+        dailyData[TODAY] = { work: 0, free: 0 };
+        saveData();
+        updateDisplay();
+        updateStats();
+        drawCharts();
+        document.getElementById('status').textContent = text.timersReset;
+        showRandomQuote();
+      }
+    }
+    
+    function saveData() {
+      localStorage.setItem('workSeconds', workSeconds);
+      localStorage.setItem('freeSeconds', freeSeconds);
+      localStorage.setItem('dailyData', JSON.stringify(dailyData));
+    }
+
+    function formatTime(seconds) {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+      document.getElementById('workTime').textContent = formatTime(workSeconds);
+      document.getElementById('freeTime').textContent = formatTime(freeSeconds);
+    }
+    
+    function updateStats() {
+      const text = uiText[language];
+      const totalSeconds = workSeconds + freeSeconds;
+      const ratio = totalSeconds > 0 ? (workSeconds / totalSeconds * 100).toFixed(1) : 0;
+      document.getElementById('workRatio').textContent = `${ratio}%`;
+      
+      const targetHours = parseInt(document.getElementById('workTarget').value);
+      const targetSeconds = targetHours * 3600;
+      const progress = (workSeconds / targetSeconds * 100).toFixed(0);
+      document.getElementById('targetProgress').textContent = 
+        `${(workSeconds / 3600).toFixed(1)}/${targetHours} ${text.hours} (${progress}%)`;
+      
+      // Calculate efficiency (work time divided by total active time)
+      // Using 8 hours (28800 seconds) as standard workday
+      const efficiency = workSeconds > 0 ? 
+        ((workSeconds / 28800) * 100).toFixed(1) : 0;
+      document.getElementById('efficiency').textContent = `${efficiency}%`;
+      
+      drawCharts();
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+      drawCharts(); // Redraw charts with new color scheme
+    }
+    
+    function toggleSettings() {
+      const settingsPanel = document.getElementById('settingsPanel');
+      settingsPanel.classList.toggle('open');
+    }
+
+    let timeChart, historyChart;
+    function drawCharts() {
+      const text = uiText[language];
+      const isDark = document.body.classList.contains('dark');
+      const textColor = isDark ? '#eee' : '#333';
+      
+      // Today's time distribution chart
+      const timeCtx = document.getElementById('timeChart').getContext('2d');
+      const timeData = {
+        labels: language === 'en' ? ['Work', 'Free Time'] : ['Práce', 'Volný Čas'],
+        datasets: [{
+          data: [workSeconds, freeSeconds],
+          backgroundColor: ['#66bb6a', '#ef5350'],
+          borderColor: isDark ? '#333' : '#fff',
+          borderWidth: 2
+        }]
+      };
+
+      const timeOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: textColor
+            }
+          },
+          title: {
+            display: true,
+            text: text.distributionTitle,
+            color: textColor,
+            font: {
+              size: 16
+            }
+          }
+        }
+      };
+
+      if (timeChart) {
+        timeChart.data = timeData;
+        timeChart.options = timeOptions;
+        timeChart.update();
+      } else {
+        timeChart = new Chart(timeCtx, {
+          type: 'doughnut',
+          data: timeData,
+          options: timeOptions
+        });
+      }
+      
+      // Weekly history chart
+      drawHistoryChart(textColor);
+    }
+    
+    function drawHistoryChart(textColor) {
+      const text = uiText[language];
+      const historyCtx = document.getElementById('historyChart').getContext('2d');
+      
+      // Get last 7 days of data
+      const dates = Object.keys(dailyData)
+        .sort()
+        .slice(-7);
+        
+      const workData = dates.map(date => Math.round(dailyData[date]?.work / 3600 * 10) / 10 || 0);
+      const freeData = dates.map(date => Math.round(dailyData[date]?.free / 3600 * 10) / 10 || 0);
+      
+      // Format dates for display
+      const displayDates = dates.map(date => {
+        const d = new Date(date);
+        return d.toLocaleDateString(language === 'en' ? 'en-US' : 'cs-CZ', { weekday: 'short' });
+      });
+      
+      const historyData = {
+        labels: displayDates,
+        datasets: [
+          {
+            label: language === 'en' ? 'Work Hours' : 'Pracovní Hodiny',
+            data: workData,
+            backgroundColor: 'rgba(102, 187, 106, 0.7)',
+            borderColor: '#66bb6a',
+            borderWidth: 2
+          },
+          {
+            label: language === 'en' ? 'Free Hours' : 'Volné Hodiny',
+            data: freeData,
+            backgroundColor: 'rgba(239, 83, 80, 0.7)',
+            borderColor: '#ef5350',
+            borderWidth: 2
+          }
+        ]
+      };
+      
+      const historyOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: textColor
+            }
+          },
+          title: {
+            display: true,
+            text: text.historyTitle,
+            color: textColor,
+            font: {
+              size: 16
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'
+            },
+            ticks: {
+              color: textColor
+            }
+          },
+          y: {
+            grid: {
+              color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'
+            },
+            ticks: {
+              color: textColor
+            },
+            title: {
+              display: true,
+              text: text.hours,
+              color: textColor
+            }
+          }
+        }
+      };
+      
+      if (historyChart) {
+        historyChart.data = historyData;
+        historyChart.options = historyOptions;
+        historyChart.update();
+      } else {
+        historyChart = new Chart(historyCtx, {
+          type: 'bar',
+          data: historyData,
+          options: historyOptions
+        });
+      }
+    }
+
+    function showRandomQuote() {
+      const languageQuotes = quotes[language];
+      const random = languageQuotes[Math.floor(Math.random() * languageQuotes.length)];
+      quoteEl.textContent = `"${random}"`;
+    }
+    
+    // Event listeners for settings changes
+    document.getElementById('workTarget').addEventListener('change', updateStats);
+  </script>
+</body>
+</html>
