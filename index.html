@@ -493,6 +493,112 @@
         right: 0.5rem;
       }
     }
+
+    /* NEW MOBILE OPTIMIZATIONS */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+      }
+      
+      header {
+        padding: 0.7rem 0.5rem;
+      }
+      
+      .timers {
+        font-size: 1.5rem;
+        margin: 0.8rem 0;
+        gap: 1rem;
+      }
+      
+      .timer-block.work-active::after,
+      .timer-block.free-active::after {
+        width: 10px;
+        height: 10px;
+        right: -15px;
+      }
+      
+      .card {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      
+      .stats {
+        gap: 0.5rem;
+      }
+      
+      .stat-item {
+        padding: 0.8rem;
+        min-width: auto;
+        flex: 1 0 45%;
+      }
+      
+      .pomodoro-settings {
+        padding-left: 0;
+      }
+      
+      .pomodoro-item {
+        min-width: 100px;
+      }
+    }
+    
+    /* Extra optimizations for very small screens */
+    @media (max-width: 480px) {
+      body {
+        padding: 0.5rem;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      .container {
+        padding: 0;
+      }
+      
+      .timers {
+        font-size: 1.3rem;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      
+      .buttons button {
+        padding: 0.7rem 0.8rem;
+        font-size: 0.95rem;
+      }
+      
+      .status {
+        font-size: 1rem;
+      }
+      
+      .chart-wrapper {
+        min-width: 100%;
+      }
+      
+      .settings-form {
+        grid-template-columns: 1fr;
+      }
+      
+      .pomodoro-container {
+        grid-column: span 1;
+      }
+      
+      .tooltip .tooltip-text {
+        width: 200px;
+        left: 50%;
+        top: 100%;
+        transform: translateX(-50%);
+      }
+      
+      .tooltip .tooltip-text::after {
+        top: -10px;
+        left: 50%;
+        margin-left: -5px;
+        border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+        right: auto;
+      }
+    }
   </style>
 </head>
 <body>
