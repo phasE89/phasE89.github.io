@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Procrastination Slayer</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏳</text></svg>">
-   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65WRW2EZF6"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65WRW2EZF6"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
@@ -713,10 +713,12 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
   <script>
+    // Global timer variables
     let workSeconds = 0;
     let freeSeconds = 0;
     let interval;
     let current = null;
+    let currentStartTime = null; // Timestamp when the current session started
     let dailyData = {};
     let pomodoroInterval = null;
     let pomodoroSecondsLeft = 0;
@@ -854,10 +856,8 @@
       
       // Set default language based on browser settings
       if (localStorage.getItem('language')) {
-        // Use saved preference if available
         language = localStorage.getItem('language');
       } else {
-        // Otherwise detect based on browser language
         if (browserLang.startsWith('cs') || browserLang.startsWith('cz')) {
           language = 'cz';
         } else {
@@ -870,17 +870,15 @@
       updateDisplay();
       updateStats();
       updateUILanguage();
-      initializeCharts(); // Initialize charts once on load
+      initializeCharts();
       showRandomQuote();
       
-      // Set up notification permission
       if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
         Notification.requestPermission();
       }
     };
     
     function loadData() {
-      // Load today's data
       if (localStorage.getItem('workSeconds')) {
         workSeconds = parseInt(localStorage.getItem('workSeconds'));
       }
@@ -890,13 +888,9 @@
       if (localStorage.getItem('darkMode') === 'true') {
         document.body.classList.add('dark');
       }
-      
-      // Load history data
       if (localStorage.getItem('dailyData')) {
         dailyData = JSON.parse(localStorage.getItem('dailyData'));
       }
-      
-      // Initialize today's data if not exists
       if (!dailyData[TODAY]) {
         dailyData[TODAY] = {
           work: workSeconds,
@@ -911,22 +905,17 @@
       updateUILanguage();
       showRandomQuote();
       
-      // Update chart labels without redrawing
       if (timeChart && historyChart) {
-        // Update doughnut chart labels
         timeChart.data.labels = language === 'en' ? ['Work', 'Free Time'] : ['Práce', 'Volný Čas'];
         timeChart.update();
         
-        // Update history chart labels and titles
         const text = uiText[language];
         historyChart.options.plugins.title.text = text.historyTitle;
         historyChart.options.scales.y.title.text = text.hours;
         historyChart.data.datasets[0].label = language === 'en' ? 'Work Hours' : 'Pracovní Hodiny';
         historyChart.data.datasets[1].label = language === 'en' ? 'Free Hours' : 'Volné Hodiny';
         
-        // Get last 7 days of data
         const dates = Object.keys(dailyData).sort().slice(-7);
-        // Format dates for display with correct locale
         const displayDates = dates.map(date => {
           const d = new Date(date);
           return d.toLocaleDateString(language === 'en' ? 'en-US' : 'cs-CZ', { weekday: 'short' });
@@ -939,8 +928,6 @@
     
     function updateUILanguage() {
       const text = uiText[language];
-      
-      // Update all UI elements with translated text
       document.getElementById('title').textContent = text.title;
       document.getElementById('workBtn').textContent = text.workBtn;
       document.getElementById('freeBtn').textContent = text.freeBtn;
@@ -952,7 +939,6 @@
         `${text.paused} (${current === 'work' ? text.workBtn : text.freeBtn})` : 
         text.noTimer;
       
-      // Settings panel
       document.getElementById('soundLabel').textContent = text.soundLabel;
       document.getElementById('targetLabel').textContent = text.targetLabel;
       document.getElementById('pomodoroLabel').textContent = text.pomodoroLabel;
@@ -960,19 +946,19 @@
       document.getElementById('workMinLabel').textContent = text.workMinLabel;
       document.getElementById('breakMinLabel').textContent = text.breakMinLabel;
       
-      // Stats area
       document.getElementById('progressTitle').textContent = text.progressTitle;
       document.getElementById('ratioTitle').textContent = text.ratioTitle;
       document.getElementById('targetTitle').textContent = text.targetTitle;
       document.getElementById('efficiencyTitle').textContent = text.efficiencyTitle;
       
-      // Update progress text with correct language
       updateStats();
     }
 
+    // Start tracking using timestamp-based calculations for accuracy
     function startTracking(mode) {
       stopTracking();
       current = mode;
+      currentStartTime = Date.now();
       
       if (document.getElementById('enableSounds').checked) {
         beep.play();
@@ -981,7 +967,6 @@
       const text = uiText[language];
       document.getElementById('status').textContent = mode === 'work' ? text.trackingWork : text.trackingFree;
       
-      // Visual feedback
       if (mode === 'work') {
         workTimerEl.classList.add('active', 'work-active');
         freeTimerEl.classList.remove('active', 'free-active');
@@ -990,28 +975,23 @@
         workTimerEl.classList.remove('active', 'work-active');
       }
       
-      // Check if pomodoro is enabled
       if (document.getElementById('enablePomodoro').checked && mode === 'work') {
         startPomodoro();
       }
       
       interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - currentStartTime) / 1000);
         if (mode === 'work') {
-          workSeconds++;
-          dailyData[TODAY].work = workSeconds;
+          dailyData[TODAY].work = workSeconds + elapsed;
+          if ((workSeconds + elapsed) % 3600 === 0 && (workSeconds + elapsed) > 0) {
+            celebrateHourMilestone();
+          }
         } else {
-          freeSeconds++;
-          dailyData[TODAY].free = freeSeconds;
+          dailyData[TODAY].free = freeSeconds + elapsed;
         }
-        
         updateDisplay();
         updateStats();
         saveData();
-        
-        // Check for hour milestone
-        if (mode === 'work' && workSeconds % 3600 === 0 && workSeconds > 0) {
-          celebrateHourMilestone();
-        }
       }, 1000);
     }
     
@@ -1060,7 +1040,6 @@
         stopTracking();
         startTracking('free');
         
-        // Auto switch back after break
         setTimeout(() => {
           if (current === 'free') {
             stopTracking();
@@ -1070,29 +1049,20 @@
       }
     }
     
-    function celebrateHourMilestone() {
-      const text = uiText[language];
-      
-      if (document.getElementById('enableSounds').checked) {
-        achievement.play();
-      }
-      
-      const hours = workSeconds / 3600;
-      
-      if (Notification.permission === 'granted') {
-        new Notification(text.milestoneNotification, {
-          body: `${text.congratsMessage} ${hours} ${text.hoursToday}`,
-          icon: 'https://cdn-icons-png.flaticon.com/512/3981/3981760.png'
-        });
-      }
-      
-      showRandomQuote();
-    }
-
+    // When stopping, add elapsed time to the base and clear the timer
     function stopTracking() {
+      if (current) {
+        const elapsed = Math.floor((Date.now() - currentStartTime) / 1000);
+        if (current === 'work') {
+          workSeconds += elapsed;
+          dailyData[TODAY].work = workSeconds;
+        } else if (current === 'free') {
+          freeSeconds += elapsed;
+          dailyData[TODAY].free = freeSeconds;
+        }
+      }
       clearInterval(interval);
       clearInterval(pomodoroInterval);
-      
       workTimerEl.classList.remove('active', 'work-active');
       freeTimerEl.classList.remove('active', 'free-active');
       
@@ -1103,6 +1073,7 @@
         document.getElementById('status').textContent = text.noTimer;
       }
       current = null;
+      currentStartTime = null;
     }
 
     function resetTimers() {
@@ -1128,6 +1099,50 @@
       localStorage.setItem('dailyData', JSON.stringify(dailyData));
     }
 
+    // Update display considering the current running session
+    function updateDisplay() {
+      let displayedWork = workSeconds;
+      let displayedFree = freeSeconds;
+      if (current) {
+        const elapsed = Math.floor((Date.now() - currentStartTime) / 1000);
+        if (current === 'work') {
+          displayedWork = workSeconds + elapsed;
+        } else if (current === 'free') {
+          displayedFree = freeSeconds + elapsed;
+        }
+      }
+      document.getElementById('workTime').textContent = formatTime(displayedWork);
+      document.getElementById('freeTime').textContent = formatTime(displayedFree);
+    }
+    
+    function updateStats() {
+      const text = uiText[language];
+      let currentWork = workSeconds;
+      let currentFree = freeSeconds;
+      if (current) {
+        const elapsed = Math.floor((Date.now() - currentStartTime) / 1000);
+        if (current === 'work') {
+          currentWork = workSeconds + elapsed;
+        } else if (current === 'free') {
+          currentFree = freeSeconds + elapsed;
+        }
+      }
+      const totalSeconds = currentWork + currentFree;
+      const ratio = totalSeconds > 0 ? (currentWork / totalSeconds * 100).toFixed(1) : 0;
+      document.getElementById('workRatio').textContent = `${ratio}%`;
+      
+      const targetHours = parseInt(document.getElementById('workTarget').value);
+      const targetSeconds = targetHours * 3600;
+      const progress = (currentWork / targetSeconds * 100).toFixed(0);
+      document.getElementById('targetProgress').textContent = 
+        `${(currentWork / 3600).toFixed(1)}/${targetHours} ${text.hours} (${progress}%)`;
+      
+      const efficiency = currentWork > 0 ? ((currentWork / 28800) * 100).toFixed(1) : 0;
+      document.getElementById('efficiency').textContent = `${efficiency}%`;
+      
+      drawCharts();
+    }
+
     function formatTime(seconds) {
       const hrs = Math.floor(seconds / 3600);
       const mins = Math.floor((seconds % 3600) / 60);
@@ -1135,39 +1150,11 @@
       return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
-    function updateDisplay() {
-      document.getElementById('workTime').textContent = formatTime(workSeconds);
-      document.getElementById('freeTime').textContent = formatTime(freeSeconds);
-    }
-    
-    function updateStats() {
-      const text = uiText[language];
-      const totalSeconds = workSeconds + freeSeconds;
-      const ratio = totalSeconds > 0 ? (workSeconds / totalSeconds * 100).toFixed(1) : 0;
-      document.getElementById('workRatio').textContent = `${ratio}%`;
-      
-      const targetHours = parseInt(document.getElementById('workTarget').value);
-      const targetSeconds = targetHours * 3600;
-      const progress = (workSeconds / targetSeconds * 100).toFixed(0);
-      document.getElementById('targetProgress').textContent = 
-        `${(workSeconds / 3600).toFixed(1)}/${targetHours} ${text.hours} (${progress}%)`;
-      
-      // Calculate efficiency (work time divided by total active time)
-      // Using 8 hours (28800 seconds) as standard workday
-      const efficiency = workSeconds > 0 ? 
-        ((workSeconds / 28800) * 100).toFixed(1) : 0;
-      document.getElementById('efficiency').textContent = `${efficiency}%`;
-      
-      drawCharts();
-    }
-
-    // Initialization of charts
     function initializeCharts() {
       const text = uiText[language];
       const isDark = document.body.classList.contains('dark');
       const textColor = isDark ? '#eee' : '#333';
       
-      // Initialize time distribution chart if not already created
       if (!timeChart) {
         const timeCtx = document.getElementById('timeChart').getContext('2d');
         const timeData = {
@@ -1183,23 +1170,17 @@
         const timeOptions = {
           responsive: true,
           maintainAspectRatio: false,
-          animation: {
-            duration: 500,  // Shorter animation for updates
-          },
+          animation: { duration: 500 },
           plugins: {
             legend: {
               position: 'bottom',
-              labels: {
-                color: textColor
-              }
+              labels: { color: textColor }
             },
             title: {
               display: true,
               text: text.distributionTitle,
               color: textColor,
-              font: {
-                size: 16
-              }
+              font: { size: 16 }
             }
           }
         };
@@ -1211,41 +1192,28 @@
         });
       }
       
-      // Initialize history chart
       initializeHistoryChart(textColor);
     }
     
-    // Update existing charts without recreation
     function drawCharts() {
       const text = uiText[language];
       const isDark = document.body.classList.contains('dark');
       const textColor = isDark ? '#eee' : '#333';
       
-      // Ensure charts are initialized
       if (!timeChart || !historyChart) {
         initializeCharts();
         return;
       }
       
-      // Update chart labels based on language
       timeChart.data.labels = language === 'en' ? ['Work', 'Free Time'] : ['Práce', 'Volný Čas'];
-      
-      // Update only the data values - not the entire dataset structure
       timeChart.data.datasets[0].data[0] = workSeconds;
       timeChart.data.datasets[0].data[1] = freeSeconds;
-      
-      // Update chart colors based on theme
       timeChart.data.datasets[0].borderColor = isDark ? '#333' : '#fff';
-      
-      // Update text colors
       timeChart.options.plugins.legend.labels.color = textColor;
       timeChart.options.plugins.title.color = textColor;
       timeChart.options.plugins.title.text = text.distributionTitle;
+      timeChart.update('none');
       
-      // Apply changes with minimal animation
-      timeChart.update('none'); // 'none' prevents animation during data updates
-      
-      // Update weekly history chart
       updateHistoryChart(textColor);
     }
     
@@ -1254,15 +1222,10 @@
       if (!historyChart) {
         const historyCtx = document.getElementById('historyChart').getContext('2d');
         
-        // Get last 7 days of data
-        const dates = Object.keys(dailyData)
-          .sort()
-          .slice(-7);
-          
+        const dates = Object.keys(dailyData).sort().slice(-7);
         const workData = dates.map(date => Math.round(dailyData[date]?.work / 3600 * 10) / 10 || 0);
         const freeData = dates.map(date => Math.round(dailyData[date]?.free / 3600 * 10) / 10 || 0);
         
-        // Format dates for display
         const displayDates = dates.map(date => {
           const d = new Date(date);
           return d.toLocaleDateString(language === 'en' ? 'en-US' : 'cs-CZ', { weekday: 'short' });
@@ -1291,46 +1254,28 @@
         const historyOptions = {
           responsive: true,
           maintainAspectRatio: false,
-          animation: {
-            duration: 600 // Slightly longer animation for bar chart
-          },
+          animation: { duration: 600 },
           plugins: {
             legend: {
               position: 'bottom',
-              labels: {
-                color: textColor
-              }
+              labels: { color: textColor }
             },
             title: {
               display: true,
               text: text.historyTitle,
               color: textColor,
-              font: {
-                size: 16
-              }
+              font: { size: 16 }
             }
           },
           scales: {
             x: {
-              grid: {
-                color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'
-              },
-              ticks: {
-                color: textColor
-              }
+              grid: { color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
+              ticks: { color: textColor }
             },
             y: {
-              grid: {
-                color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'
-              },
-              ticks: {
-                color: textColor
-              },
-              title: {
-                display: true,
-                text: text.hours,
-                color: textColor
-              }
+              grid: { color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
+              ticks: { color: textColor },
+              title: { display: true, text: text.hours, color: textColor }
             }
           }
         };
@@ -1345,65 +1290,44 @@
     
     function updateHistoryChart(textColor) {
       const text = uiText[language];
-      
-      // Get last 7 days of data
-      const dates = Object.keys(dailyData)
-        .sort()
-        .slice(-7);
-        
+      const dates = Object.keys(dailyData).sort().slice(-7);
       const workData = dates.map(date => Math.round(dailyData[date]?.work / 3600 * 10) / 10 || 0);
       const freeData = dates.map(date => Math.round(dailyData[date]?.free / 3600 * 10) / 10 || 0);
       
-      // Format dates for display
       const displayDates = dates.map(date => {
         const d = new Date(date);
         return d.toLocaleDateString(language === 'en' ? 'en-US' : 'cs-CZ', { weekday: 'short' });
       });
       
-      // Update only necessary data
       historyChart.data.labels = displayDates;
-      
-      // Update dataset labels according to language
       historyChart.data.datasets[0].label = language === 'en' ? 'Work Hours' : 'Pracovní Hodiny';
       historyChart.data.datasets[1].label = language === 'en' ? 'Free Hours' : 'Volné Hodiny';
-      
-      // Update data values
       historyChart.data.datasets[0].data = workData;
       historyChart.data.datasets[1].data = freeData;
-      
-      // Update text colors and settings
       historyChart.options.plugins.legend.labels.color = textColor;
       historyChart.options.plugins.title.color = textColor;
       historyChart.options.plugins.title.text = text.historyTitle;
-      
-      // Update scale colors
       historyChart.options.scales.x.grid.color = textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
       historyChart.options.scales.x.ticks.color = textColor;
       historyChart.options.scales.y.grid.color = textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
       historyChart.options.scales.y.ticks.color = textColor;
       historyChart.options.scales.y.title.color = textColor;
       historyChart.options.scales.y.title.text = text.hours;
-      
-      // Apply changes with minimal animation
       historyChart.update('none');
     }
 
     function toggleDarkMode() {
       document.body.classList.toggle('dark');
       localStorage.setItem('darkMode', document.body.classList.contains('dark'));
-      
-      // Update chart colors without full redraw
       const isDark = document.body.classList.contains('dark');
       const textColor = isDark ? '#eee' : '#333';
       
       if (timeChart && historyChart) {
-        // Apply theme changes with smooth transition
         timeChart.options.plugins.legend.labels.color = textColor;
         timeChart.options.plugins.title.color = textColor;
         timeChart.data.datasets[0].borderColor = isDark ? '#333' : '#fff';
         timeChart.update();
         
-        // Update history chart colors
         historyChart.options.plugins.legend.labels.color = textColor;
         historyChart.options.plugins.title.color = textColor;
         historyChart.options.scales.x.grid.color = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
@@ -1428,7 +1352,6 @@
       quoteEl.textContent = `"${random}"`;
     }
     
-    // Event listeners for settings changes
     document.getElementById('workTarget').addEventListener('change', updateStats);
   </script>
 </body>
