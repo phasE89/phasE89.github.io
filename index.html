@@ -287,19 +287,82 @@
       display: flex;
       flex-wrap: wrap;
       justify-content: space-around;
-      gap: 1rem;
-      margin: 1.5rem 0;
+      gap: 1.5rem;
+      margin: 2rem 0;
     }
     
     .stat-item {
-      padding: 1rem;
-      border-radius: 8px;
-      background-color: rgba(255, 255, 255, 0.2);
+      padding: 1.2rem;
+      border-radius: 10px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.3));
       min-width: 200px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .stat-item:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
     }
     
     body.dark .stat-item {
-      background-color: rgba(255, 255, 255, 0.1);
+      background: linear-gradient(145deg, rgba(60, 60, 70, 0.7), rgba(30, 30, 40, 0.5));
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    }
+    
+    .stat-item h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.75;
+    }
+    
+    .stat-item .stat-value {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+    
+    .stat-item .progress-bar {
+      width: 100%;
+      height: 6px;
+      background-color: rgba(200, 200, 200, 0.3);
+      border-radius: 3px;
+      margin-top: 0.8rem;
+      overflow: hidden;
+    }
+    
+    .stat-item .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+    
+    .work-ratio .progress-fill {
+      background-color: var(--work-color);
+    }
+    
+    .daily-target .progress-fill {
+      background-color: #ffb74d;
+    }
+    
+    .efficiency .progress-fill {
+      background-color: #64b5f6;
+    }
+    
+    .stat-item .progress-label {
+      font-size: 0.85rem;
+      opacity: 0.7;
+      margin-top: 0.3rem;
+      font-style: italic;
     }
     
     .quote {
@@ -468,6 +531,15 @@
       margin-left: 5px;
     }
     
+    .info-icon.small {
+      width: 14px;
+      height: 14px;
+      font-size: 10px;
+      line-height: 14px;
+      background-color: rgba(100, 181, 246, 0.8);
+      vertical-align: super;
+    }
+    
     .tooltip {
       position: relative;
       display: inline-block;
@@ -583,27 +655,34 @@
       .stats {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 0.3rem;
-        margin: 0.6rem 0;
+        gap: 0.5rem;
+        margin: 1rem 0;
       }
       
       .stat-item {
-        padding: 0.5rem;
+        padding: 0.7rem;
         min-width: auto;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        border-radius: 6px;
+        border-radius: 8px;
       }
       
       .stat-item h3 {
-        font-size: 0.9rem;
-        margin: 0 0 0.2rem 0;
+        font-size: 0.75rem;
+        margin: 0 0 0.3rem 0;
+        letter-spacing: 0.3px;
       }
       
-      .stat-item div {
-        font-size: 1.1rem;
-        font-weight: 500;
+      .stat-item .stat-value {
+        font-size: 1.2rem;
+      }
+      
+      .stat-item .progress-bar {
+        height: 4px;
+        margin-top: 0.5rem;
+      }
+      
+      .stat-item .progress-label {
+        font-size: 0.7rem;
+        margin-top: 0.2rem;
       }
       
       .charts-container {
@@ -817,17 +896,39 @@
       
       <div id="metricsContent" class="collapsible-content">
         <div class="stats">
-          <div class="stat-item">
+          <div class="stat-item work-ratio">
             <h3 id="ratioTitle">Work Ratio</h3>
-            <div id="workRatio">0%</div>
+            <div id="workRatio">
+              <div class="stat-value">0%</div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
           </div>
-          <div class="stat-item">
+          <div class="stat-item daily-target">
             <h3 id="targetTitle">Daily Target</h3>
-            <div id="targetProgress">0/4 hours</div>
+            <div id="targetProgress">
+              <div class="stat-value">0/4</div>
+              <div class="progress-label">hours (0%)</div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
           </div>
-          <div class="stat-item">
-            <h3 id="efficiencyTitle">Efficiency</h3>
-            <div id="efficiency">0%</div>
+          <div class="stat-item efficiency">
+            <h3 id="efficiencyTitle">
+              Efficiency
+              <div class="tooltip">
+                <div class="info-icon small">i</div>
+                <span class="tooltip-text" id="efficiencyHelp">Shows your productivity as a percentage of a standard 8-hour workday.</span>
+              </div>
+            </h3>
+            <div id="efficiency">
+              <div class="stat-value">0%</div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -958,6 +1059,7 @@
         ratioTitle: "Work Ratio",
         targetTitle: "Daily Target",
         efficiencyTitle: "Efficiency",
+        efficiencyTooltip: "Shows your productivity as a percentage of a standard 8-hour workday.",
         trackingWork: "Tracking Work...",
         trackingFree: "Tracking Free Time...",
         paused: "Paused",
@@ -1000,6 +1102,7 @@
         ratioTitle: "Poměr práce",
         targetTitle: "Denní cíl",
         efficiencyTitle: "Efektivita",
+        efficiencyTooltip: "Zobrazuje vaši produktivitu jako procento standardního 8hodinového pracovního dne.",
         trackingWork: "Sledování práce...",
         trackingFree: "Sledování volného času...",
         paused: "Pozastaveno",
@@ -1261,6 +1364,7 @@
       document.getElementById('ratioTitle').textContent = text.ratioTitle;
       document.getElementById('targetTitle').textContent = text.targetTitle;
       document.getElementById('efficiencyTitle').textContent = text.efficiencyTitle;
+      document.getElementById('efficiencyHelp').textContent = text.efficiencyTooltip;
       
       // Update the toggle metrics button text
       document.getElementById('toggleMetricsText').textContent = 
@@ -1550,16 +1654,55 @@
       }
       const totalSeconds = currentWork + currentFree;
       const ratio = totalSeconds > 0 ? (currentWork / totalSeconds * 100).toFixed(1) : 0;
-      document.getElementById('workRatio').textContent = `${ratio}%`;
       
+      // Update Work Ratio
+      const workRatioElement = document.getElementById('workRatio');
+      workRatioElement.innerHTML = `<div class="stat-value">${ratio}%</div>`;
+      
+      // Add progress bar for work ratio
+      const ratioBar = document.createElement('div');
+      ratioBar.className = 'progress-bar';
+      const ratioFill = document.createElement('div');
+      ratioFill.className = 'progress-fill';
+      ratioFill.style.width = `${ratio}%`;
+      ratioBar.appendChild(ratioFill);
+      workRatioElement.appendChild(ratioBar);
+      
+      // Update target progress
       const targetHours = parseInt(document.getElementById('workTarget').value);
       const targetSeconds = targetHours * 3600;
-      const progress = (currentWork / targetSeconds * 100).toFixed(0);
-      document.getElementById('targetProgress').textContent = 
-        `${(currentWork / 3600).toFixed(1)}/${targetHours} ${text.hours} (${progress}%)`;
+      const progressPercent = Math.min((currentWork / targetSeconds * 100), 100).toFixed(0);
+      const targetElement = document.getElementById('targetProgress');
       
+      targetElement.innerHTML = `<div class="stat-value">${(currentWork / 3600).toFixed(1)}/${targetHours}</div>`;
+      targetElement.innerHTML += `<div class="progress-label">${text.hours} (${progressPercent}%)</div>`;
+      
+      const targetBar = document.createElement('div');
+      targetBar.className = 'progress-bar';
+      const targetFill = document.createElement('div');
+      targetFill.className = 'progress-fill';
+      targetFill.style.width = `${progressPercent}%`;
+      targetBar.appendChild(targetFill);
+      targetElement.appendChild(targetBar);
+      
+      // Update efficiency
       const efficiency = currentWork > 0 ? ((currentWork / 28800) * 100).toFixed(1) : 0;
-      document.getElementById('efficiency').textContent = `${efficiency}%`;
+      const efficiencyElement = document.getElementById('efficiency');
+      
+      efficiencyElement.innerHTML = `<div class="stat-value">${efficiency}%</div>`;
+      
+      const efficiencyBar = document.createElement('div');
+      efficiencyBar.className = 'progress-bar';
+      const efficiencyFill = document.createElement('div');
+      efficiencyFill.className = 'progress-fill';
+      efficiencyFill.style.width = `${efficiency}%`;
+      efficiencyBar.appendChild(efficiencyFill);
+      efficiencyElement.appendChild(efficiencyBar);
+      
+      // Add classes to stat containers for specific styling
+      document.querySelector('.stat-item:nth-child(1)').classList.add('work-ratio');
+      document.querySelector('.stat-item:nth-child(2)').classList.add('daily-target');
+      document.querySelector('.stat-item:nth-child(3)').classList.add('efficiency');
       
       drawCharts();
     }
