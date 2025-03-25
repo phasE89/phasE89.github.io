@@ -550,7 +550,7 @@
       }
     }
 
-    /* NEW MOBILE OPTIMIZATIONS */
+    /* MOBILE OPTIMIZATIONS */
     @media (max-width: 768px) {
       h1 {
         font-size: 1.8rem;
@@ -579,14 +579,60 @@
         margin-bottom: 1.5rem;
       }
       
+      /* IMPROVED METRICS SECTION FOR MOBILE */
       .stats {
-        gap: 0.5rem;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.3rem;
+        margin: 0.6rem 0;
       }
       
       .stat-item {
-        padding: 0.8rem;
+        padding: 0.5rem;
         min-width: auto;
-        flex: 1 0 45%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border-radius: 6px;
+      }
+      
+      .stat-item h3 {
+        font-size: 0.9rem;
+        margin: 0 0 0.2rem 0;
+      }
+      
+      .stat-item div {
+        font-size: 1.1rem;
+        font-weight: 500;
+      }
+      
+      .charts-container {
+        gap: 1rem;
+        margin: 1rem 0;
+      }
+      
+      .chart-wrapper {
+        min-width: 100%;
+        margin-bottom: 0.5rem;
+      }
+      
+      canvas {
+        max-height: 180px;
+      }
+      
+      /* Card header with metrics toggle */
+      .card-header {
+        margin-bottom: 0.5rem;
+      }
+      
+      .card-header h2 {
+        font-size: 1.3rem;
+        margin: 0;
+      }
+      
+      .toggle-metrics {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
       }
       
       .pomodoro-settings {
@@ -628,8 +674,14 @@
         font-size: 1rem;
       }
       
-      .chart-wrapper {
-        min-width: 100%;
+      /* For very small screens, stack stats vertically for better readability */
+      .stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.3rem;
+      }
+      
+      .stat-item {
+        padding: 0.4rem;
       }
       
       .settings-form {
