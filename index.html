@@ -727,7 +727,7 @@
       </div>
     </div>
     
-    <div class="card">
+    <div class="card" id="metricsCard">
       <div class="card-header">
         <h2 id="progressTitle">Today's Progress</h2>
         <button id="toggleMetricsBtn" class="toggle-metrics" onclick="toggleMetrics()">
@@ -842,7 +842,7 @@
         "Miluji termíny. Miluji zvuk, který vydávají, když proletí kolem.",
         "Byl jsi požehnán vědomím ve vesmíru hmoty. Možná to neplýtvej sledováním videí s kočkami?",
         "Být produktivní není o dělání více věcí—je to o dělání více správných věcí.",
-		"Pokud věříš sám sobě... a věříš ve své sny... a sleduješ svou hvězdu... přesto tě porazí lidé, kteří strávili čas tvrdou prací a učením a nebyli tak líní."  
+        "Pokud věříš sám sobě... a věříš ve své sny... a sleduješ svou hvězdu... přesto tě porazí lidé, kteří strávili čas tvrdou prací a učením a nebyli tak líní."  
       ]
     };
     
@@ -960,10 +960,10 @@
       // Load metrics enabled preference
       if (localStorage.getItem('metricsEnabled') !== null) {
         metricsEnabled = localStorage.getItem('metricsEnabled') === 'true';
-                  const hideMetricsCheckbox = document.getElementById('hideMetricsCompletely');
-          if (hideMetricsCheckbox) {
-            hideMetricsCheckbox.checked = !metricsEnabled;
-          }
+        const hideMetricsCheckbox = document.getElementById('hideMetricsCompletely');
+        if (hideMetricsCheckbox) {
+          hideMetricsCheckbox.checked = !metricsEnabled;
+        }
         updateMetricsEnabled();
       }
       
@@ -977,7 +977,9 @@
       updateUILanguage();
       
       try {
+        // Explicitly initialize and draw charts
         initializeCharts();
+        drawCharts();
       } catch (err) {
         console.error('Error initializing charts:', err);
       }
@@ -1001,10 +1003,21 @@
       const lastVisitDate = localStorage.getItem('lastVisitDate');
       
       if (lastVisitDate && lastVisitDate !== TODAY) {
-        // It's a new day, but we still want to keep yesterday's data visible
-        // We don't reset the timers automatically, but we ensure today's entry exists
+        console.log('New day detected:', lastVisitDate, '->', TODAY);
+        
+        // It's a new day, ensure today's entry exists but with zeros
+        // This ensures we don't carry over yesterday's times
         if (!dailyData[TODAY]) {
+          console.log('Creating entry for new day with zeros');
           dailyData[TODAY] = { work: 0, free: 0 };
+          
+          // Since it's a new day, also reset the session counters
+          // but keep the previous day's data in history
+          workSeconds = 0;
+          freeSeconds = 0;
+          
+          // Make sure we save these changes
+          saveData();
         }
       }
       
@@ -1053,18 +1066,9 @@
     
     function loadData() {
       try {
-        // Load work and free seconds
-        if (localStorage.getItem('workSeconds')) {
-          workSeconds = parseInt(localStorage.getItem('workSeconds')) || 0;
-        }
-        if (localStorage.getItem('freeSeconds')) {
-          freeSeconds = parseInt(localStorage.getItem('freeSeconds')) || 0;
-        }
-        
-        // Load dark mode preference
-        if (localStorage.getItem('darkMode') === 'true') {
-          document.body.classList.add('dark');
-        }
+        // Clear console for better debugging
+        console.clear();
+        console.log('Loading data for date:', TODAY);
         
         // Load daily data with error handling
         if (localStorage.getItem('dailyData')) {
@@ -1072,6 +1076,7 @@
             const storedData = localStorage.getItem('dailyData');
             if (storedData) {
               dailyData = JSON.parse(storedData) || {};
+              console.log('Loaded daily data:', dailyData);
             }
           } catch (e) {
             console.error('Error parsing dailyData:', e);
@@ -1081,20 +1086,29 @@
         
         // Ensure today's data exists
         if (!dailyData[TODAY]) {
+          console.log('Creating new entry for today');
           dailyData[TODAY] = {
-            work: workSeconds,
-            free: freeSeconds
+            work: 0,
+            free: 0
           };
         }
         
-        // Update today's data from workSeconds and freeSeconds if they're different
-        // This handles cases where the date changed but the app wasn't restarted
-        if (dailyData[TODAY].work !== workSeconds || dailyData[TODAY].free !== freeSeconds) {
-          dailyData[TODAY].work = workSeconds;
-          dailyData[TODAY].free = freeSeconds;
-          // Save immediately to ensure consistency
-          saveData();
+        // Load work and free seconds from today's data
+        workSeconds = dailyData[TODAY].work || 0;
+        freeSeconds = dailyData[TODAY].free || 0;
+        
+        console.log('Loaded timers:', {
+          work: formatTime(workSeconds),
+          free: formatTime(freeSeconds)
+        });
+        
+        // Load dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+          document.body.classList.add('dark');
         }
+        
+        // Save immediately to ensure consistency
+        saveData();
         
       } catch (err) {
         console.error('Error loading data:', err);
@@ -1198,7 +1212,7 @@
     }
     
     function updateMetricsEnabled() {
-      const metricsCard = document.querySelector('.card:nth-child(3)'); // The metrics card
+      const metricsCard = document.getElementById('metricsCard');
       
       if (metricsEnabled) {
         metricsCard.style.display = '';
@@ -1365,6 +1379,23 @@
       }
     }
     
+    // Create a new day entry
+    function resetDayData() {
+      // Reset day data but remember the timer counts
+      const oldData = { ...dailyData[TODAY] }; // Save previous values
+      
+      dailyData[TODAY] = {
+        work: 0,
+        free: 0
+      };
+      
+      workSeconds = 0;
+      freeSeconds = 0;
+      
+      saveData();
+      console.log('Day data reset from:', oldData, 'to:', dailyData[TODAY]);
+    }
+    
     function saveData() {
       try {
         localStorage.setItem('workSeconds', workSeconds);
@@ -1459,40 +1490,59 @@
       const textColor = isDark ? '#eee' : '#333';
       
       if (!timeChart) {
-        const timeCtx = document.getElementById('timeChart').getContext('2d');
-        const timeData = {
-          labels: language === 'en' ? ['Work', 'Free Time'] : ['Práce', 'Volný Čas'],
-          datasets: [{
-            data: [workSeconds, freeSeconds],
-            backgroundColor: ['#66bb6a', '#ef5350'],
-            borderColor: isDark ? '#333' : '#fff',
-            borderWidth: 2
-          }]
-        };
-
-        const timeOptions = {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: { duration: 500 },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: textColor }
-            },
-            title: {
-              display: true,
-              text: text.distributionTitle,
-              color: textColor,
-              font: { size: 16 }
+        try {
+          const timeCtx = document.getElementById('timeChart').getContext('2d');
+          
+          // Make sure we're using the current values including any elapsed time
+          let currentWork = workSeconds;
+          let currentFree = freeSeconds;
+          if (current) {
+            const elapsed = Math.floor((Date.now() - currentStartTime) / 1000);
+            if (current === 'work') {
+              currentWork = workSeconds + elapsed;
+            } else if (current === 'free') {
+              currentFree = freeSeconds + elapsed;
             }
           }
-        };
+          
+          const timeData = {
+            labels: language === 'en' ? ['Work', 'Free Time'] : ['Práce', 'Volný Čas'],
+            datasets: [{
+              data: [currentWork, currentFree],
+              backgroundColor: ['#66bb6a', '#ef5350'],
+              borderColor: isDark ? '#333' : '#fff',
+              borderWidth: 2
+            }]
+          };
 
-        timeChart = new Chart(timeCtx, {
-          type: 'doughnut',
-          data: timeData,
-          options: timeOptions
-        });
+          const timeOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 500 },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: textColor }
+              },
+              title: {
+                display: true,
+                text: text.distributionTitle,
+                color: textColor,
+                font: { size: 16 }
+              }
+            }
+          };
+
+          timeChart = new Chart(timeCtx, {
+            type: 'doughnut',
+            data: timeData,
+            options: timeOptions
+          });
+          
+          console.log('Time chart initialized');
+        } catch (err) {
+          console.error('Error initializing time chart:', err);
+        }
       }
       
       initializeHistoryChart(textColor);
@@ -1508,9 +1558,24 @@
         return;
       }
       
+      // Update data for time distribution chart (today's work vs. free time)
       timeChart.data.labels = language === 'en' ? ['Work', 'Free Time'] : ['Práce', 'Volný Čas'];
-      timeChart.data.datasets[0].data[0] = workSeconds;
-      timeChart.data.datasets[0].data[1] = freeSeconds;
+      
+      // Make sure we're using the current values including any elapsed time
+      let currentWork = workSeconds;
+      let currentFree = freeSeconds;
+      if (current) {
+        const elapsed = Math.floor((Date.now() - currentStartTime) / 1000);
+        if (current === 'work') {
+          currentWork = workSeconds + elapsed;
+        } else if (current === 'free') {
+          currentFree = freeSeconds + elapsed;
+        }
+      }
+      
+      // Update chart with current values
+      timeChart.data.datasets[0].data[0] = currentWork;
+      timeChart.data.datasets[0].data[1] = currentFree;
       timeChart.data.datasets[0].borderColor = isDark ? '#333' : '#fff';
       timeChart.options.plugins.legend.labels.color = textColor;
       timeChart.options.plugins.title.color = textColor;
@@ -1523,100 +1588,127 @@
     function initializeHistoryChart(textColor) {
       const text = uiText[language];
       if (!historyChart) {
-        const historyCtx = document.getElementById('historyChart').getContext('2d');
-        
-        const dates = Object.keys(dailyData).sort().slice(-7);
-        const workData = dates.map(date => Math.round(dailyData[date]?.work / 3600 * 10) / 10 || 0);
-        const freeData = dates.map(date => Math.round(dailyData[date]?.free / 3600 * 10) / 10 || 0);
-        
-        const displayDates = dates.map(date => {
-          const d = new Date(date);
-          return d.toLocaleDateString(language === 'en' ? 'en-US' : 'cs-CZ', { weekday: 'short' });
-        });
-        
-        const historyData = {
-          labels: displayDates,
-          datasets: [
-            {
-              label: language === 'en' ? 'Work Hours' : 'Pracovní Hodiny',
-              data: workData,
-              backgroundColor: 'rgba(102, 187, 106, 0.7)',
-              borderColor: '#66bb6a',
-              borderWidth: 2
+        try {
+          const historyCtx = document.getElementById('historyChart').getContext('2d');
+          
+          const dates = Object.keys(dailyData).sort().slice(-7);
+          const workData = dates.map(date => Math.round(dailyData[date]?.work / 3600 * 10) / 10 || 0);
+          const freeData = dates.map(date => Math.round(dailyData[date]?.free / 3600 * 10) / 10 || 0);
+          
+          const displayDates = dates.map(date => {
+            const d = new Date(date);
+            return d.toLocaleDateString(language === 'en' ? 'en-US' : 'cs-CZ', { weekday: 'short' });
+          });
+          
+          const historyData = {
+            labels: displayDates,
+            datasets: [
+              {
+                label: language === 'en' ? 'Work Hours' : 'Pracovní Hodiny',
+                data: workData,
+                backgroundColor: 'rgba(102, 187, 106, 0.7)',
+                borderColor: '#66bb6a',
+                borderWidth: 2
+              },
+              {
+                label: language === 'en' ? 'Free Hours' : 'Volné Hodiny',
+                data: freeData,
+                backgroundColor: 'rgba(239, 83, 80, 0.7)',
+                borderColor: '#ef5350',
+                borderWidth: 2
+              }
+            ]
+          };
+          
+          const historyOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 600 },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: textColor }
+              },
+              title: {
+                display: true,
+                text: text.historyTitle,
+                color: textColor,
+                font: { size: 16 }
+              }
             },
-            {
-              label: language === 'en' ? 'Free Hours' : 'Volné Hodiny',
-              data: freeData,
-              backgroundColor: 'rgba(239, 83, 80, 0.7)',
-              borderColor: '#ef5350',
-              borderWidth: 2
+            scales: {
+              x: {
+                grid: { color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
+                ticks: { color: textColor }
+              },
+              y: {
+                grid: { color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
+                ticks: { color: textColor },
+                title: { display: true, text: text.hours, color: textColor }
+              }
             }
-          ]
-        };
-        
-        const historyOptions = {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: { duration: 600 },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: textColor }
-            },
-            title: {
-              display: true,
-              text: text.historyTitle,
-              color: textColor,
-              font: { size: 16 }
-            }
-          },
-          scales: {
-            x: {
-              grid: { color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
-              ticks: { color: textColor }
-            },
-            y: {
-              grid: { color: textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
-              ticks: { color: textColor },
-              title: { display: true, text: text.hours, color: textColor }
-            }
-          }
-        };
-        
-        historyChart = new Chart(historyCtx, {
-          type: 'bar',
-          data: historyData,
-          options: historyOptions
-        });
+          };
+          
+          historyChart = new Chart(historyCtx, {
+            type: 'bar',
+            data: historyData,
+            options: historyOptions
+          });
+          
+          console.log('History chart initialized');
+        } catch (err) {
+          console.error('Error initializing history chart:', err);
+        }
       }
     }
     
     function updateHistoryChart(textColor) {
       const text = uiText[language];
-      const dates = Object.keys(dailyData).sort().slice(-7);
-      const workData = dates.map(date => Math.round(dailyData[date]?.work / 3600 * 10) / 10 || 0);
-      const freeData = dates.map(date => Math.round(dailyData[date]?.free / 3600 * 10) / 10 || 0);
       
-      const displayDates = dates.map(date => {
-        const d = new Date(date);
-        return d.toLocaleDateString(language === 'en' ? 'en-US' : 'cs-CZ', { weekday: 'short' });
-      });
-      
-      historyChart.data.labels = displayDates;
-      historyChart.data.datasets[0].label = language === 'en' ? 'Work Hours' : 'Pracovní Hodiny';
-      historyChart.data.datasets[1].label = language === 'en' ? 'Free Hours' : 'Volné Hodiny';
-      historyChart.data.datasets[0].data = workData;
-      historyChart.data.datasets[1].data = freeData;
-      historyChart.options.plugins.legend.labels.color = textColor;
-      historyChart.options.plugins.title.color = textColor;
-      historyChart.options.plugins.title.text = text.historyTitle;
-      historyChart.options.scales.x.grid.color = textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-      historyChart.options.scales.x.ticks.color = textColor;
-      historyChart.options.scales.y.grid.color = textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-      historyChart.options.scales.y.ticks.color = textColor;
-      historyChart.options.scales.y.title.color = textColor;
-      historyChart.options.scales.y.title.text = text.hours;
-      historyChart.update('none');
+      try {
+        // Get the last 7 days of data, sorted by date
+        const dates = Object.keys(dailyData).sort().slice(-7);
+        
+        // Calculate hours for each day
+        const workData = dates.map(date => {
+          const workSeconds = dailyData[date]?.work || 0;
+          return Math.round(workSeconds / 3600 * 10) / 10; // Convert to hours with 1 decimal
+        });
+        
+        const freeData = dates.map(date => {
+          const freeSeconds = dailyData[date]?.free || 0;
+          return Math.round(freeSeconds / 3600 * 10) / 10; // Convert to hours with 1 decimal
+        });
+        
+        // Format dates for display
+        const displayDates = dates.map(date => {
+          const d = new Date(date);
+          return d.toLocaleDateString(language === 'en' ? 'en-US' : 'cs-CZ', { weekday: 'short' });
+        });
+        
+        // Update chart data
+        historyChart.data.labels = displayDates;
+        historyChart.data.datasets[0].label = language === 'en' ? 'Work Hours' : 'Pracovní Hodiny';
+        historyChart.data.datasets[1].label = language === 'en' ? 'Free Hours' : 'Volné Hodiny';
+        historyChart.data.datasets[0].data = workData;
+        historyChart.data.datasets[1].data = freeData;
+        
+        // Update chart appearance
+        historyChart.options.plugins.legend.labels.color = textColor;
+        historyChart.options.plugins.title.color = textColor;
+        historyChart.options.plugins.title.text = text.historyTitle;
+        historyChart.options.scales.x.grid.color = textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+        historyChart.options.scales.x.ticks.color = textColor;
+        historyChart.options.scales.y.grid.color = textColor === '#333' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+        historyChart.options.scales.y.ticks.color = textColor;
+        historyChart.options.scales.y.title.color = textColor;
+        historyChart.options.scales.y.title.text = text.hours;
+        
+        // Apply changes
+        historyChart.update('none');
+      } catch (err) {
+        console.error('Error updating history chart:', err);
+      }
     }
 
     function toggleDarkMode() {
@@ -1653,6 +1745,7 @@
       quoteEl.textContent = `"${random}"`;
     }
     
+    // Add event listeners
     document.getElementById('workTarget').addEventListener('change', updateStats);
     document.getElementById('hideMetricsCompletely').addEventListener('change', toggleMetricsEnabled);
   </script>
