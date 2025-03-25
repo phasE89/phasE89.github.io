@@ -620,19 +620,27 @@
         max-height: 180px;
       }
       
-      /* Card header with metrics toggle */
+      /* Card header with metrics toggle - IMPROVED FOR MOBILE */
       .card-header {
-        margin-bottom: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        width: 100%;
       }
       
       .card-header h2 {
         font-size: 1.3rem;
         margin: 0;
+        text-align: left;
+        max-width: 60%;
       }
       
       .toggle-metrics {
         padding: 0.3rem 0.6rem;
         font-size: 0.8rem;
+        white-space: nowrap;
+        margin-left: auto;
       }
       
       .pomodoro-settings {
@@ -705,6 +713,26 @@
         margin-left: -5px;
         border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
         right: auto;
+      }
+      
+      /* Further adjustments for very small screens */
+      .card-header {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      
+      .card-header h2 {
+        font-size: 1.2rem;
+        max-width: 100%;
+        width: 100%;
+        margin-bottom: 0.3rem;
+      }
+      
+      .toggle-metrics {
+        margin-left: 0;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
       }
     }
   </style>
@@ -1583,7 +1611,16 @@
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { color: textColor }
+                labels: { 
+                  color: textColor,
+                  boxWidth: 15,
+                  padding: 10,
+                  usePointStyle: true,
+                  pointStyle: 'circle'
+                },
+                // Fix for chart legend - make it display horizontally
+                align: 'center',
+                maxWidth: 140
               },
               title: {
                 display: true,
