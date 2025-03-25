@@ -688,6 +688,13 @@
             <span class="setting-label" id="targetLabel">Daily Work Target (hours)</span>
             <input type="number" id="workTarget" min="1" step="1" value="4">
           </label>
+          <label>
+            <span class="setting-label" id="hideMetricsLabel">Hide Metrics Completely</span>
+            <div class="settings-group">
+              <input type="checkbox" id="hideMetricsCompletely">
+              <span class="setting-help" id="hideMetricsHelp">Removes the metrics section entirely from view</span>
+            </div>
+          </label>
           <div class="pomodoro-container">
             <div class="pomodoro-title">
               <input type="checkbox" id="enablePomodoro">
@@ -776,6 +783,7 @@
     let pomodoroSecondsLeft = 0;
     let language = 'en'; // Default language
     let metricsVisible = true; // Default visibility state for metrics
+    let metricsEnabled = true; // Whether to show the metrics card at all
     let saveInterval = null; // For periodic saving
     
     const TODAY = new Date().toISOString().split('T')[0];
@@ -843,6 +851,8 @@
         status: "No timer running.",
         soundLabel: "Sound Notifications",
         targetLabel: "Daily Work Target (hours)",
+        hideMetricsLabel: "Hide Metrics Completely",
+        hideMetricsHelp: "Removes the metrics section entirely from view",
         pomodoroLabel: "Pomodoro Mode",
         pomodoroTooltip: "A technique where you work in focused time blocks (e.g. 25 min) followed by short breaks to maximize productivity.",
         workMinLabel: "Work minutes",
@@ -883,6 +893,8 @@
         status: "Žádný časovač neběží.",
         soundLabel: "Zvuková upozornění",
         targetLabel: "Denní cíl práce (hodiny)",
+        hideMetricsLabel: "Zcela skrýt metriky",
+        hideMetricsHelp: "Kompletně odstraní sekci metrik z pohledu",
         pomodoroLabel: "Pomodoro režim",
         pomodoroTooltip: "Technika, při které pracujete v soustředěných časových blocích (např. 25 min) následovaných krátkými přestávkami pro zvýšení produktivity.",
         workMinLabel: "Minuty práce",
@@ -935,6 +947,16 @@
       if (localStorage.getItem('metricsVisible') !== null) {
         metricsVisible = localStorage.getItem('metricsVisible') === 'true';
         updateMetricsVisibility();
+      }
+      
+      // Load metrics enabled preference
+      if (localStorage.getItem('metricsEnabled') !== null) {
+        metricsEnabled = localStorage.getItem('metricsEnabled') === 'true';
+                  const hideMetricsCheckbox = document.getElementById('hideMetricsCompletely');
+          if (hideMetricsCheckbox) {
+            hideMetricsCheckbox.checked = !metricsEnabled;
+          }
+        updateMetricsEnabled();
       }
       
       // Load timers and data
@@ -1117,6 +1139,8 @@
       
       document.getElementById('soundLabel').textContent = text.soundLabel;
       document.getElementById('targetLabel').textContent = text.targetLabel;
+      document.getElementById('hideMetricsLabel').textContent = text.hideMetricsLabel;
+      document.getElementById('hideMetricsHelp').textContent = text.hideMetricsHelp;
       document.getElementById('pomodoroLabel').textContent = text.pomodoroLabel;
       document.getElementById('pomodoroHelp').textContent = text.pomodoroTooltip;
       document.getElementById('workMinLabel').textContent = text.workMinLabel;
@@ -1134,7 +1158,7 @@
       updateStats();
     }
 
-    // Toggle metrics visibility
+    // Toggle metrics visibility (collapse/expand)
     function toggleMetrics() {
       metricsVisible = !metricsVisible;
       localStorage.setItem('metricsVisible', metricsVisible);
@@ -1155,6 +1179,23 @@
         metricsContent.classList.add('collapsed');
         toggleIcon.textContent = '▶';
         toggleText.textContent = text.showMetrics;
+      }
+    }
+    
+    // Toggle whether metrics section should be shown at all
+    function toggleMetricsEnabled() {
+      metricsEnabled = !document.getElementById('hideMetricsCompletely').checked;
+      localStorage.setItem('metricsEnabled', metricsEnabled);
+      updateMetricsEnabled();
+    }
+    
+    function updateMetricsEnabled() {
+      const metricsCard = document.querySelector('.card:nth-child(3)'); // The metrics card
+      
+      if (metricsEnabled) {
+        metricsCard.style.display = '';
+      } else {
+        metricsCard.style.display = 'none';
       }
     }
 
@@ -1605,6 +1646,7 @@
     }
     
     document.getElementById('workTarget').addEventListener('change', updateStats);
+    document.getElementById('hideMetricsCompletely').addEventListener('change', toggleMetricsEnabled);
   </script>
 </body>
 </html>
